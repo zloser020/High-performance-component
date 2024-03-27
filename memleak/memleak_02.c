@@ -9,8 +9,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <dlfcn.h>
+#include <link.h>
 
-#if 1
+
+void *ConverToELF(void *addr){
+	Dl_info info;
+	struct link_map *link;
+	dladdr1(addr,&info,(void**)&link,RTLD_DL_LINKMAP);
+	return (void *)((size_t)addr-link->l_addr);
+}
+
+#if 0
 
 // addr2line -f -e ./memleak -a 0x400b38
 
@@ -23,6 +33,7 @@ free_t free_f = NULL;
 
 int enable_malloc_hook = 1;
 int enable_free_hook = 1;
+
 
 
 void *malloc(size_t size) {
@@ -41,7 +52,7 @@ void *malloc(size_t size) {
 		sprintf(filename, "./mem/%p.mem", ptr);
 
 		FILE *fp = fopen(filename, "w");
-		fprintf(fp, "[+] caller: %p, addr: %p, size: %ld\n", caller, ptr, size);
+		fprintf(fp, "[+] caller: %p, addr: %p, size: %ld\n", ConverToELF(caller), ptr, size);
 
 		fflush(fp);
 		
@@ -88,7 +99,7 @@ void init_hook(void) {
 	}
 }
 
-#elif
+#else
 
 
 // malloc(); --> __libc_malloc();
@@ -116,7 +127,7 @@ void *malloc(size_t size) {
 		sprintf(filename, "./mem/%p.mem", ptr);
 
 		FILE *fp = fopen(filename, "w");
-		fprintf(fp, "[+] caller: %p, addr: %p, size: %ld\n", caller, ptr, size);
+		fprintf(fp, "[+] caller: %p, addr: %p, size: %ld\n", ConverToELF(caller), ptr, size);
 
 		fflush(fp);
 		
@@ -160,7 +171,7 @@ void free(void *ptr) {
 
 int main() {
 
-	init_hook();
+	//init_hook();
 
 	void *p1 = malloc(5);  //_malloc
 	void *p2 = malloc(10);
